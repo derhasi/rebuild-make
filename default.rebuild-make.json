@@ -1,0 +1,15 @@
+{
+  "makefile": "drupal.make",
+  "build_path": "docroot",
+  "custom": [
+    "sites/all/libraries/composer",
+    "sites/all/modules/custom",
+    "sites/all/themes/custom",
+    "sites/default/files",
+    "sites/default/settings.php",
+    ".htaccess"
+  ],
+  "exclude": [
+    ".gitignore"
+  ]
+}
