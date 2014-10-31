@@ -95,6 +95,11 @@ class RebuildMake {
     $this->config = $json;
   }
 
+  /**
+   * Retrieve absolute build path.
+   *
+   * @return string
+   */
   protected function getBuildPath() {
     if (!isset($this->buildPath)) {
       $this->buildPath = $this->root . '/' . $this->config->build_path;
@@ -102,6 +107,11 @@ class RebuildMake {
     return $this->buildPath;
   }
 
+  /**
+   * Retrieve absolute path to makefile.
+   *
+   * @return string
+   */
   protected function getMakeFile() {
     if (!isset($this->makeFile)) {
       $this->makeFile = $this->root . '/' . $this->config->makefile;
@@ -120,10 +130,17 @@ class RebuildMake {
     $this->cleanup();
   }
 
-  public function cleanup() {
+  /**
+   * Cleanup at the end of execution.
+   */
+  protected function cleanup() {
     $this->removeTempDirectory();
   }
 
+  /**
+   * Retrieve and/or build temporary directory for current process.
+   * @return string
+   */
   protected function getTempDirectory() {
     if (!isset($this->tmpPath)) {
       $this->tmpPath = $this->root . '/make-backup_' . time();
@@ -132,6 +149,9 @@ class RebuildMake {
     return $this->tmpPath;
   }
 
+  /**
+   * Remove a temp directory for the given process.
+   */
   protected function removeTempDirectory() {
     if (!empty($this->tmpPath)) {
       RebuildMakeFileSystem::removeDirectory($this->tmpPath);
@@ -139,6 +159,9 @@ class RebuildMake {
     unset($this->tmpPath);
   }
 
+  /**
+   * Back up custom files and folders.
+   */
   protected function secureCustomData() {
     $build_path = $this->getBuildPath();
 
@@ -179,7 +202,9 @@ class RebuildMake {
     }
   }
 
-
+  /**
+   * Restore the backup of custom files and folders.
+   */
   protected function recoverCustomData() {
 
     // Move files back.
@@ -197,11 +222,17 @@ class RebuildMake {
     }
   }
 
+  /**
+   * Rebuild the drupal installation with the given drush make file.
+   */
   protected function remake() {
     RebuildMakeFileSystem::removeRecursive($this->getBuildPath());
     $this->drushMake($this->getMakeFile(), $this->getBuildPath());
   }
 
+  /**
+   * Remove excluded files provided by the make process.
+   */
   protected function removeExcludes() {
     $build_path = $this->getBuildPath();
 
@@ -209,11 +240,17 @@ class RebuildMake {
     foreach ($this->config->exclude as $rm) {
       $path = "$build_path/$rm";
       if (file_exists($path)) {
-        RebuildMakeFileSystem::removeFile($path);
+        RebuildMakeFileSystem::removeRecursive($path);
       }
     }
   }
 
+  /**
+   * Wrapper for calling drush make.
+   *
+   * @param $makefile
+   * @param $buildpath
+   */
   protected function drushMake($makefile, $buildpath) {
     print "====> Rebuilding with make file <====\n";
     print shell_exec('drush make ' . escapeshellarg($makefile) . ' ' . escapeshellarg($buildpath));
@@ -226,28 +263,64 @@ class RebuildMake {
  * Class RebuildMakeFileSystem
  */
 class RebuildMakeFileSystem {
-  public static function makeDirectory($dir, $perm, $recursive = FALSE) {
+
+  /**
+   * Wrapper for creating a directory.
+   *
+   * @param $dir
+   * @param $perm
+   * @param bool $recursive
+   */
+  public static function makeDirectory($dir, $perm = 0777, $recursive = FALSE) {
     @mkdir($dir, $perm, $recursive);
   }
 
+  /**
+   * Wrapper for changing file permissions.
+   *
+   * @param $path
+   * @param $mode
+   */
   public static function changeFileMode($path, $mode) {
     chmod($path, $mode);
   }
 
+  /**
+   * Wrapper for moving a file or folder.
+   *
+   * @param $from
+   * @param $to
+   */
   public static function move($from, $to) {
     rename($from, $to);
   }
 
-  public static function removeFile($file) {
-    unlink($file);
-  }
-
+  /**
+   * Wrapper for removing an empty directory.
+   *
+   * @param $folder
+   */
   public static function removeDirectory($folder) {
     rmdir($folder);
   }
 
-  public static function removeRecursive($folder) {
-    print "Recursive remove $folder\n";
-    shell_exec('rm -rf ' . escapeshellarg($folder));
+  /**
+   * This function recursively deletes all files and folders under the given
+   * directory, and then the directory itself.
+   *
+   * equivalent to Bash: rm -r $dir
+   * @param $dir
+   *
+   * @see https://github.com/perchten/php-rmrdir
+   */
+  public static function removeRecursive($dir) {
+    $it = new RecursiveDirectoryIterator($dir);
+    $it = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
+    foreach($it as $file) {
+      if ('.' === $file->getBasename() || '..' ===  $file->getBasename()) continue;
+      if ($file->isDir()) rmdir($file->getPathname());
+      else unlink($file->getPathname());
+    }
+    return rmdir($dir);
   }
 }
