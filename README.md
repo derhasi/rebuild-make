@@ -10,6 +10,6 @@ Example: [default.rebuild-make.json](default.rebuild-make.json)
 
 ## @Todos
 
-[ ] Make this a drush plugin
-[ ] Make path to json configurable
-[ ] Find a better name
+- [ ] Make this a drush plugin
+- [ ] Make path to json configurable
+- [ ] Find a better name
