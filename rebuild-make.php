@@ -127,7 +127,7 @@ class RebuildMake {
   protected function getTempDirectory() {
     if (!isset($this->tmpPath)) {
       $this->tmpPath = $this->root . '/make-backup_' . time();
-      RebuildMakeFileSystem::makeDirectory($this->tmpPath);
+      RebuildMakeFileSystem::makeDirectory($this->tmpPath, RebuildMake::REBUILD_FILEPERM);
     }
     return $this->tmpPath;
   }
@@ -226,8 +226,8 @@ class RebuildMake {
  * Class RebuildMakeFileSystem
  */
 class RebuildMakeFileSystem {
-  public static function makeDirectory($dir, $recursive = FALSE) {
-    mkdir($dir, self::REBUILD_FILEPERM, $recursive);
+  public static function makeDirectory($dir, $perm, $recursive = FALSE) {
+    @mkdir($dir, $perm, $recursive);
   }
 
   public static function changeFileMode($path, $mode) {
