@@ -43,8 +43,8 @@ class RebuildMake {
   protected $makeFile;
   protected $tmpPath;
 
-  protected $customMap;
-  protected $rebuildFilePermissions;
+  protected $customMap = array();
+  protected $rebuildFilePermissions = array();
 
   /**
    * Constructor.
@@ -93,7 +93,6 @@ class RebuildMake {
     }
 
     $this->config = $json;
-    print_r($this->config);
   }
 
   protected function getBuildPath() {
@@ -128,14 +127,14 @@ class RebuildMake {
   protected function getTempDirectory() {
     if (!isset($this->tmpPath)) {
       $this->tmpPath = $this->root . '/make-backup_' . time();
-      mkdir($this->tmpPath);
+      RebuildMakeFileSystem::makeDirectory($this->tmpPath);
     }
     return $this->tmpPath;
   }
 
   protected function removeTempDirectory() {
     if (!empty($this->tmpPath)) {
-      rmdir($this->tmpPath);
+      RebuildMakeFileSystem::removeDirectory($this->tmpPath);
     }
     unset($this->tmpPath);
   }
@@ -152,7 +151,7 @@ class RebuildMake {
         // we can move it.
         if (!is_writable($from)) {
           $perms = fileperms($from);
-          chmod($from, self::REBUILD_FILEPERM);
+          RebuildMakeFileSystem::changeFileMode($from, self::REBUILD_FILEPERM);
           // Store so we can reset it later.
           $this->rebuildFilePermissions[$from] = $perms;
         }
@@ -162,7 +161,7 @@ class RebuildMake {
         $parent_dir = dirname($from);
         if (!is_writable($parent_dir)) {
           $perms = fileperms($parent_dir);
-          chmod($parent_dir, self::REBUILD_FILEPERM);
+          RebuildMakeFileSystem::changeFileMode($parent_dir, self::REBUILD_FILEPERM);
           // Store so we can reset it later.
           $this->rebuildFilePermissions[$parent_dir] = $perms;
 
@@ -173,40 +172,34 @@ class RebuildMake {
         // Build the path to temporary move to.
         $to = $this->getTempDirectory() . '/'. str_replace('/', '--', $from_relative);
         // ... and finally move to temp.
-        shell_exec("mv $from $to");
+        RebuildMakeFileSystem::move($from, $to);
 
         $this->customMap[$from] = $to;
       }
     }
   }
+
+
   protected function recoverCustomData() {
 
     // Move files back.
     foreach ($this->customMap as $from => $to) {
       // In some cases we have to make sure the parent directories exist.
-      @mkdir(dirname($from), self::REBUILD_FILEPERM, true);
+      RebuildMakeFileSystem::makeDirectory(dirname($from), self::REBUILD_FILEPERM, true);
 
       print "Restoring {$from} ...\n";
-      shell_exec("mv $to $from");
+      RebuildMakeFileSystem::move($to, $from);
     }
 
     // Reset permissions.
     foreach ($this->rebuildFilePermissions as $file => $perm) {
-      chmod($file, $perm);
+      RebuildMakeFileSystem::changeFileMode($file, $perm);
     }
   }
 
   protected function remake() {
-    return;
-    /**
-     * Rebuilding with make file.
-     */
-    print "Remove docroot ...\n";
-    print shell_exec('rm -rf docroot');
-    print "====> Rebuilding with make file <====\n";
-    print shell_exec('drush make erpaul.make docroot');
-    print "=====================================\n";
-
+    RebuildMakeFileSystem::removeRecursive($this->getBuildPath());
+    $this->drushMake($this->getMakeFile(), $this->getBuildPath());
   }
 
   protected function removeExcludes() {
@@ -216,11 +209,45 @@ class RebuildMake {
     foreach ($this->config->exclude as $rm) {
       $path = "$build_path/$rm";
       if (file_exists($path)) {
-        unlink($path);
+        RebuildMakeFileSystem::removeFile($path);
       }
     }
   }
 
+  protected function drushMake($makefile, $buildpath) {
+    print "====> Rebuilding with make file <====\n";
+    print shell_exec('drush make ' . escapeshellarg($makefile) . ' ' . escapeshellarg($buildpath));
+    print "=====================================\n";
+  }
 
+}
 
+/**
+ * Class RebuildMakeFileSystem
+ */
+class RebuildMakeFileSystem {
+  public static function makeDirectory($dir, $recursive = FALSE) {
+    mkdir($dir, self::REBUILD_FILEPERM, $recursive);
+  }
+
+  public static function changeFileMode($path, $mode) {
+    chmod($path, $mode);
+  }
+
+  public static function move($from, $to) {
+    rename($from, $to);
+  }
+
+  public static function removeFile($file) {
+    unlink($file);
+  }
+
+  public static function removeDirectory($folder) {
+    rmdir($folder);
+  }
+
+  public static function removeRecursive($folder) {
+    print "Recursive remove $folder\n";
+    shell_exec('rm -rf ' . escapeshellarg($folder));
+  }
 }
