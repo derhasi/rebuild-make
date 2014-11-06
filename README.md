@@ -7,9 +7,6 @@ additionally leaving custom code intact.
 
 Example: [default.rebuild-make.json](default.rebuild-make.json)
 
-
 ## @Todos
 
-- [ ] Make this a drush plugin
-- [ ] Make path to json configurable
-- [ ] Find a better name
+Have a look in the [issues](https://github.com/derhasi/rebuild-make/issues).
