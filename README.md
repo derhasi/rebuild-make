@@ -3,10 +3,17 @@
 This is a php tool for rebuilding a drush make file based project and
 additionally leaving custom code intact.
 
-## Configuration in rebuild-make.json
+## Configuration in JSON
 
 You have to configure the script with a JSON file. An example is available as
 [default.rebuild-make.json](default.rebuild-make.json) in this repository.
+
+* `makefile`: location of the drush make file (path relative to JSON file)
+* `build_path`: location of path to build make file to (path relative to JSON file)
+* `custom`: array of locations within the build directory to save from being removed
+  (paths are relative to the build path)
+* `exclude`: array of files within the build directory that shall be removed 
+   after the make build finished (paths are relative to the build path).
 
 ## Command
 
