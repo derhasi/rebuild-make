@@ -9,12 +9,26 @@
 // We switch off error reporting, but print out any error in the first place.
 //error_reporting(0);
 
-try {
-  $rebuild = new RebuildMake(__DIR__ . '/rebuild-make.json');
-  $rebuild->execute();
+// Only execute the command, when there is a path to the rebuild-make.json.
+if (!empty($argv[1])) {
+  // Get the real absolute path of the json file.
+  $JSONpath = realpath($argv[1]);
+  if ($JSONpath === FALSE) {
+    print "Path to JSON is not valid.";
+    exit;
+  }
+
+  try {
+    $rebuild = new RebuildMake($JSONpath);
+    $rebuild->execute();
+  }
+  catch (Exception $e) {
+    print $e->getMessage();
+  }
 }
-catch (Exception $e) {
-  print $e->getMessage();
+else {
+  print "No path to JSON given.";
+  exit;
 }
 
 /**
@@ -308,19 +322,25 @@ class RebuildMakeFileSystem {
    * This function recursively deletes all files and folders under the given
    * directory, and then the directory itself.
    *
-   * equivalent to Bash: rm -r $dir
-   * @param $dir
+   * equivalent to Bash: rm -r $path
+   * @param $path
    *
    * @see https://github.com/perchten/php-rmrdir
    */
-  public static function removeRecursive($dir) {
-    $it = new RecursiveDirectoryIterator($dir);
+  public static function removeRecursive($path) {
+    // If the path is not a directory we can simply unlink it.
+    if (!is_dir($path)) {
+      return unlink($path);
+    }
+
+    // Otherwise we go through the whole directory.
+    $it = new RecursiveDirectoryIterator($path);
     $it = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
     foreach($it as $file) {
       if ('.' === $file->getBasename() || '..' ===  $file->getBasename()) continue;
       if ($file->isDir()) rmdir($file->getPathname());
       else unlink($file->getPathname());
     }
-    return rmdir($dir);
+    return rmdir($path);
   }
 }
