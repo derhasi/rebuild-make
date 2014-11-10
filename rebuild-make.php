@@ -315,7 +315,9 @@ class RebuildMakeFileSystem {
    * @param $folder
    */
   public static function removeDirectory($folder) {
-    rmdir($folder);
+    if (is_dir($folder)) {
+      rmdir($folder);
+    }
   }
 
   /**
@@ -328,6 +330,11 @@ class RebuildMakeFileSystem {
    * @see https://github.com/perchten/php-rmrdir
    */
   public static function removeRecursive($path) {
+    // Check if path exists.
+    if (!file_exists($path)) {
+      return;
+    }
+
     // If the path is not a directory we can simply unlink it.
     if (!is_dir($path)) {
       return unlink($path);
