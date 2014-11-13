@@ -306,6 +306,9 @@ class RebuildMakeFileSystem {
    * @param $to
    */
   public static function move($from, $to) {
+    if (file_exists($to)) {
+      static::removeRecursive($to);
+    }
     rename($from, $to);
   }
 
