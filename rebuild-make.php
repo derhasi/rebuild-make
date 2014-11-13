@@ -306,6 +306,9 @@ class RebuildMakeFileSystem {
    * @param $to
    */
   public static function move($from, $to) {
+    if (file_exists($to)) {
+      static::removeRecursive($to);
+    }
     rename($from, $to);
   }
 
@@ -315,7 +318,9 @@ class RebuildMakeFileSystem {
    * @param $folder
    */
   public static function removeDirectory($folder) {
-    rmdir($folder);
+    if (is_dir($folder)) {
+      rmdir($folder);
+    }
   }
 
   /**
@@ -328,6 +333,11 @@ class RebuildMakeFileSystem {
    * @see https://github.com/perchten/php-rmrdir
    */
   public static function removeRecursive($path) {
+    // Check if path exists.
+    if (!file_exists($path)) {
+      return;
+    }
+
     // If the path is not a directory we can simply unlink it.
     if (!is_dir($path)) {
       return unlink($path);
@@ -338,9 +348,9 @@ class RebuildMakeFileSystem {
     $it = new RecursiveIteratorIterator($it, RecursiveIteratorIterator::CHILD_FIRST);
     foreach($it as $file) {
       if ('.' === $file->getBasename() || '..' ===  $file->getBasename()) continue;
-      if ($file->isDir()) rmdir($file->getPathname());
+      if ($file->isDir()) static::removeDirectory($file->getPathname());
       else unlink($file->getPathname());
     }
-    return rmdir($path);
+    return static::removeDirectory($path);
   }
 }
